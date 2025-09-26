@@ -6,7 +6,6 @@ use bitcoin::{
     Address, Amount, OutPoint, ScriptBuf, Sequence, TapLeafHash, TapSighashType, Transaction, TxIn,
     TxOut, Witness, EcdsaSighashType,
 };
-use bitcoin::hashes::Hash;
 use log::{error, info};
 use std::str::FromStr;
 use thiserror::Error;
