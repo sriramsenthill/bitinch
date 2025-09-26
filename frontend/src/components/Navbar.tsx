@@ -7,8 +7,7 @@ export const Navbar = () => {
     }
     
     return (
-        <nav className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-6xl px-4">
-            <div className="bg-black/20 backdrop-blur-md border border-white/10 rounded-full px-6 py-3 flex items-center justify-between">
+            <div className="rounded-full px-6 py-3 flex items-center justify-between">
                 {/* Logo */}
                 <div className="flex items-center space-x-2">
                     
@@ -36,6 +35,5 @@ export const Navbar = () => {
                     </button>
                 )}
             </div>
-        </nav>
     )
 }
