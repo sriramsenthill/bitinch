@@ -1,13 +1,14 @@
 import Hero from './components/Hero';
 import { Navbar } from './components/Navbar';
-
+import { SwapWidget } from './components/SwapWidget';
 function App() {
   return (
-    <div style={{
-      background: `linear-gradient(${180}deg, #0c1638 30%, #e06038 100%)`,
-    }}>
-      <Navbar />
+    <div className="min-h-screen">
+      {/* <Navbar /> */}
       <Hero />
+      <div className='py-48'>
+      <SwapWidget/>
+      </div>
     </div>
   );
 }
