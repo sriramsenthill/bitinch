@@ -7,7 +7,14 @@ import { AppKitProvider } from './walletProvider/walletProvider.tsx'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppKitProvider>
-        <App />
+        <div 
+          className="min-h-screen w-full"
+          style={{
+            background: `linear-gradient(180deg, #0c1638 30%, #e06038 100%)`,
+          }}
+        >
+          <App/>
+        </div>
     </AppKitProvider>
   </StrictMode>,
 )

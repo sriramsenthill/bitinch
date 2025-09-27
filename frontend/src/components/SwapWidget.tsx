@@ -1,230 +1,49 @@
-import React, { useState, useEffect, useCallback } from 'react';
-
-// Asset interface
-interface Asset {
-  id: string;
-  symbol: string;
-  name: string;
-  icon: string;
-  decimals: number;
-  balance?: number;
-}
-
-// Quote interface
-interface Quote {
-  inputAmount: number;
-  outputAmount: number;
-  exchangeRate: number;
-  priceImpact: number;
-  minimumReceived: number;
-  slippage: number;
-  timestamp: number;
-}
-
-// Swap state interface
-interface SwapState {
-  // Asset selection
-  fromAsset: Asset;
-  toAsset: Asset;
-  
-  // Amounts
-  inputAmount: string;
-  outputAmount: string;
-  
-  // Quote data
-  quote: Quote | null;
-  
-  // UI states
-  isQuoteLoading: boolean;
-  isSwapPending: boolean;
-  showQuoteDetails: boolean;
-  
-  // Exchange states
-  isExchanging: boolean;
-  exchangeDirection: 'normal' | 'reversed';
-  
-  // Error states
-  error: string | null;
-  warning: string | null;
-  
-  // Slippage and settings
-  slippageTolerance: number;
-  deadline: number;
-  
-  // Price data
-  currentPrice: number;
-  priceChange24h: number;
-}
-
-// Default assets
-const DEFAULT_ASSETS: Asset[] = [
-  {
-    id: 'btc',
-    symbol: 'BTC',
-    name: 'Bitcoin',
-    icon: '₿',
-    decimals: 8,
-    balance: 0.5
-  },
-  {
-    id: 'eth',
-    symbol: 'ETH',
-    name: 'Ethereum',
-    icon: 'Ξ',
-    decimals: 18,
-    balance: 2.5
-  }
-];
-
-// Mock price data (in real app, this would come from API)
-const MOCK_PRICES = {
-  BTC: 45000,
-  ETH: 3000
-};
-
-// Mock exchange rates
-const MOCK_EXCHANGE_RATES = {
-  'BTC-ETH': 0.0667, // 1 BTC = 0.0667 ETH
-  'ETH-BTC': 15.0    // 1 ETH = 15 BTC
-};
+import React from 'react';
+import { useSwapStore, MOCK_PRICES } from '../stores/swapStore';
 
 export const SwapWidget: React.FC = () => {
-  // Main swap state
-  const [swapState, setSwapState] = useState<SwapState>({
-    fromAsset: DEFAULT_ASSETS[0], // BTC
-    toAsset: DEFAULT_ASSETS[1],    // ETH
-    inputAmount: '',
-    outputAmount: '',
-    quote: null,
-    isQuoteLoading: false,
-    isSwapPending: false,
-    showQuoteDetails: false,
-    isExchanging: false,
-    exchangeDirection: 'normal',
-    error: null,
-    warning: null,
-    slippageTolerance: 0.5, // 0.5%
-    deadline: 20, // 20 minutes
-    currentPrice: MOCK_PRICES.BTC,
-    priceChange24h: 2.5
-  });
-
-  // Calculate quote when input amount changes
-  const calculateQuote = useCallback(async (amount: string, fromAsset: Asset, toAsset: Asset) => {
-    if (!amount || parseFloat(amount) <= 0) {
-      setSwapState(prev => ({
-        ...prev,
-        quote: null,
-        outputAmount: '',
-        error: null
-      }));
-      return;
-    }
-
-    setSwapState(prev => ({ ...prev, isQuoteLoading: true, error: null }));
-
-    try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const inputAmount = parseFloat(amount);
-      const exchangeRate = MOCK_EXCHANGE_RATES[`${fromAsset.symbol}-${toAsset.symbol}` as keyof typeof MOCK_EXCHANGE_RATES];
-      
-      if (!exchangeRate) {
-        throw new Error('Exchange rate not available');
-      }
-
-      const outputAmount = inputAmount * exchangeRate;
-      const priceImpact = Math.random() * 2; // Mock price impact
-      const slippage = swapState.slippageTolerance;
-      const minimumReceived = outputAmount * (1 - slippage / 100);
-
-      const quote: Quote = {
-        inputAmount,
-        outputAmount,
-        exchangeRate,
-        priceImpact,
-        minimumReceived,
-        slippage,
-        timestamp: Date.now()
-      };
-
-      setSwapState(prev => ({
-        ...prev,
-        quote,
-        outputAmount: outputAmount.toFixed(6),
-        isQuoteLoading: false,
-        error: null
-      }));
-
-    } catch (error) {
-      setSwapState(prev => ({
-        ...prev,
-        isQuoteLoading: false,
-        error: error instanceof Error ? error.message : 'Failed to get quote',
-        quote: null,
-        outputAmount: ''
-      }));
-    }
-  }, [swapState.slippageTolerance]);
-
-  // Handle input amount change
-  const handleInputChange = (value: string) => {
-    setSwapState(prev => ({ ...prev, inputAmount: value }));
-    
-    if (value) {
-      calculateQuote(value, swapState.fromAsset, swapState.toAsset);
-    }
-  };
-
-  // Handle asset swap (exchange direction)
-  const handleAssetSwap = () => {
-    setSwapState(prev => ({
-      ...prev,
-      fromAsset: prev.toAsset,
-      toAsset: prev.fromAsset,
-      inputAmount: prev.outputAmount,
-      outputAmount: prev.inputAmount,
-      isExchanging: true,
-      exchangeDirection: prev.exchangeDirection === 'normal' ? 'reversed' : 'normal'
-    }));
-
-    // Reset exchange animation after delay
-    setTimeout(() => {
-      setSwapState(prev => ({ ...prev, isExchanging: false }));
-    }, 300);
-  };
+  // Zustand store state and actions
+  const {
+    fromAsset,
+    toAsset,
+    inputAmount,
+    outputAmount,
+    quote,
+    isQuoteLoading,
+    isSwapPending,
+    isExchanging,
+    exchangeDirection,
+    error,
+    slippageTolerance,
+    deadline,
+    setInputAmount,
+    swapAssets,
+    setError,
+    setIsSwapPending,
+    resetForm
+  } = useSwapStore();
 
   // Handle swap execution
   const handleSwap = async () => {
-    if (!swapState.quote || !swapState.inputAmount || !swapState.outputAmount) {
-      setSwapState(prev => ({ ...prev, error: 'Invalid swap parameters' }));
+    if (!quote || !inputAmount || !outputAmount) {
+      setError('Invalid swap parameters');
       return;
     }
 
-    setSwapState(prev => ({ ...prev, isSwapPending: true, error: null }));
+    setIsSwapPending(true);
+    setError(null);
 
     try {
       // Simulate swap execution
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Reset form after successful swap
-      setSwapState(prev => ({
-        ...prev,
-        inputAmount: '',
-        outputAmount: '',
-        quote: null,
-        isSwapPending: false,
-        error: null
-      }));
-
+      resetForm();
       alert('Swap executed successfully!');
     } catch (error) {
-      setSwapState(prev => ({
-        ...prev,
-        isSwapPending: false,
-        error: 'Swap failed. Please try again.'
-      }));
+      setError('Swap failed. Please try again.');
+    } finally {
+      setIsSwapPending(false);
     }
   };
 
@@ -245,58 +64,61 @@ export const SwapWidget: React.FC = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white rounded-2xl shadow-xl border border-gray-200 p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Swap</h2>
-        <p className="text-gray-600 text-sm">Trade tokens instantly</p>
+    <div className="max-w-md mx-auto bg-black/20 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/10 p-8">
+      {/* Header */}
+      <div className="mb-8 text-center">
+        <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-orange-400 to-pink-400 bg-clip-text text-transparent">
+          Swap
+        </h2>
+        <p className="text-white/70 text-sm">Trade tokens instantly on Bitcoin</p>
       </div>
 
       {/* From Asset */}
-      <div className="mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium text-gray-700">From</span>
-          <span className="text-xs text-gray-500">
-            Balance: {formatBalance(swapState.fromAsset.balance, swapState.fromAsset.decimals)} {swapState.fromAsset.symbol}
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-sm font-medium text-white/80">From</span>
+          <span className="text-xs text-white/60">
+            Balance: {formatBalance(fromAsset.balance, fromAsset.decimals)} {fromAsset.symbol}
           </span>
         </div>
         
-        <div className="flex items-center bg-gray-50 rounded-xl p-4 border-2 border-gray-200 focus-within:border-blue-500 transition-colors">
-          <div className="flex items-center space-x-3 flex-1">
-            <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">
-              {swapState.fromAsset.icon}
+        <div className="flex items-center bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/10 hover:border-orange-400/50 transition-all duration-300 group">
+          <div className="flex items-center space-x-4 flex-1">
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
+              {fromAsset.icon}
             </div>
             <div>
-              <div className="font-semibold text-gray-900">{swapState.fromAsset.symbol}</div>
-              <div className="text-xs text-gray-500">{swapState.fromAsset.name}</div>
+              <div className="font-semibold text-white text-lg">{fromAsset.symbol}</div>
+              <div className="text-xs text-white/60">{fromAsset.name}</div>
             </div>
           </div>
           
           <div className="text-right">
             <input
               type="number"
-              value={swapState.inputAmount}
-              onChange={(e) => handleInputChange(e.target.value)}
+              value={inputAmount}
+              onChange={(e) => setInputAmount(e.target.value)}
               placeholder="0.00"
-              className="text-right text-lg font-semibold bg-transparent border-none outline-none w-32"
+              className="text-right text-xl font-semibold bg-transparent border-none outline-none w-32 text-white placeholder-white/40"
             />
-            <div className="text-xs text-gray-500">
-              ≈ {formatPrice(parseFloat(swapState.inputAmount || '0') * MOCK_PRICES[swapState.fromAsset.symbol as keyof typeof MOCK_PRICES])}
+            <div className="text-xs text-white/60">
+              ≈ {formatPrice(parseFloat(inputAmount || '0') * MOCK_PRICES[fromAsset.symbol as keyof typeof MOCK_PRICES])}
             </div>
           </div>
         </div>
       </div>
 
       {/* Exchange Button */}
-      <div className="flex justify-center my-4">
+      <div className="flex justify-center my-6">
         <button
-          onClick={handleAssetSwap}
-          className={`w-10 h-10 rounded-full border-2 border-gray-300 bg-white hover:bg-gray-50 flex items-center justify-center transition-all duration-300 ${
-            swapState.isExchanging ? 'animate-spin' : ''
+          onClick={swapAssets}
+          className={`w-12 h-12 rounded-full border-2 border-white/20 bg-black/30 backdrop-blur-sm hover:bg-orange-400/20 hover:border-orange-400/50 flex items-center justify-center transition-all duration-300 ${
+            isExchanging ? 'animate-spin' : ''
           }`}
         >
           <svg 
-            className={`w-5 h-5 text-gray-600 transition-transform duration-300 ${
-              swapState.exchangeDirection === 'reversed' ? 'rotate-180' : ''
+            className={`w-6 h-6 text-white transition-transform duration-300 ${
+              exchangeDirection === 'reversed' ? 'rotate-180' : ''
             }`} 
             fill="none" 
             stroke="currentColor" 
@@ -308,89 +130,93 @@ export const SwapWidget: React.FC = () => {
       </div>
 
       {/* To Asset */}
-      <div className="mb-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium text-gray-700">To</span>
-          <span className="text-xs text-gray-500">
-            Balance: {formatBalance(swapState.toAsset.balance, swapState.toAsset.decimals)} {swapState.toAsset.symbol}
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-3">
+          <span className="text-sm font-medium text-white/80">To</span>
+          <span className="text-xs text-white/60">
+            Balance: {formatBalance(toAsset.balance, toAsset.decimals)} {toAsset.symbol}
           </span>
         </div>
         
-        <div className="flex items-center bg-gray-50 rounded-xl p-4 border-2 border-gray-200">
-          <div className="flex items-center space-x-3 flex-1">
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-              {swapState.toAsset.icon}
+        <div className="flex items-center bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/10">
+          <div className="flex items-center space-x-4 flex-1">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
+              {toAsset.icon}
             </div>
             <div>
-              <div className="font-semibold text-gray-900">{swapState.toAsset.symbol}</div>
-              <div className="text-xs text-gray-500">{swapState.toAsset.name}</div>
+              <div className="font-semibold text-white text-lg">{toAsset.symbol}</div>
+              <div className="text-xs text-white/60">{toAsset.name}</div>
             </div>
           </div>
           
           <div className="text-right">
-            <div className="text-lg font-semibold text-gray-900">
-              {swapState.isQuoteLoading ? (
-                <div className="animate-pulse">...</div>
+            <div className="text-xl font-semibold text-white">
+              {isQuoteLoading ? (
+                <div className="animate-pulse flex items-center">
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce mr-1"></div>
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce mr-1" style={{animationDelay: '0.1s'}}></div>
+                  <div className="w-2 h-2 bg-white/60 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                </div>
               ) : (
-                swapState.outputAmount || '0.00'
+                outputAmount || '0.00'
               )}
             </div>
-            <div className="text-xs text-gray-500">
-              ≈ {formatPrice(parseFloat(swapState.outputAmount || '0') * MOCK_PRICES[swapState.toAsset.symbol as keyof typeof MOCK_PRICES])}
+            <div className="text-xs text-white/60">
+              ≈ {formatPrice(parseFloat(outputAmount || '0') * MOCK_PRICES[toAsset.symbol as keyof typeof MOCK_PRICES])}
             </div>
           </div>
         </div>
       </div>
 
       {/* Quote Details */}
-      {swapState.quote && (
-        <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+      {quote && (
+        <div className="mb-6 p-4 bg-gradient-to-r from-orange-400/10 to-pink-400/10 rounded-2xl border border-orange-400/20 backdrop-blur-sm">
+          <div className="flex justify-between items-center text-sm mb-2">
+            <span className="text-white/70">Rate</span>
+            <span className="font-medium text-white">
+              1 {fromAsset.symbol} = {quote.exchangeRate.toFixed(6)} {toAsset.symbol}
+            </span>
+          </div>
+          <div className="flex justify-between items-center text-sm mb-2">
+            <span className="text-white/70">Price Impact</span>
+            <span className={`font-medium ${quote.priceImpact > 1 ? 'text-red-400' : 'text-green-400'}`}>
+              {quote.priceImpact.toFixed(2)}%
+            </span>
+          </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-600">Rate</span>
-            <span className="font-medium">
-              1 {swapState.fromAsset.symbol} = {swapState.quote.exchangeRate.toFixed(6)} {swapState.toAsset.symbol}
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-sm mt-1">
-            <span className="text-gray-600">Price Impact</span>
-            <span className={`font-medium ${swapState.quote.priceImpact > 1 ? 'text-red-600' : 'text-green-600'}`}>
-              {swapState.quote.priceImpact.toFixed(2)}%
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-sm mt-1">
-            <span className="text-gray-600">Minimum Received</span>
-            <span className="font-medium">
-              {swapState.quote.minimumReceived.toFixed(6)} {swapState.toAsset.symbol}
+            <span className="text-white/70">Minimum Received</span>
+            <span className="font-medium text-white">
+              {quote.minimumReceived.toFixed(6)} {toAsset.symbol}
             </span>
           </div>
         </div>
       )}
 
       {/* Error Display */}
-      {swapState.error && (
-        <div className="mb-4 p-3 bg-red-50 rounded-lg border border-red-200">
-          <div className="text-red-600 text-sm">{swapState.error}</div>
+      {error && (
+        <div className="mb-6 p-4 bg-red-400/10 rounded-2xl border border-red-400/20 backdrop-blur-sm">
+          <div className="text-red-400 text-sm">{error}</div>
         </div>
       )}
 
       {/* Swap Button */}
       <button
         onClick={handleSwap}
-        disabled={!swapState.quote || swapState.isSwapPending || swapState.isQuoteLoading}
-        className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-200 ${
-          !swapState.quote || swapState.isSwapPending || swapState.isQuoteLoading
-            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            : 'bg-blue-600 hover:bg-blue-700 text-white transform hover:scale-105 shadow-lg hover:shadow-xl'
+        disabled={!quote || isSwapPending || isQuoteLoading}
+        className={`w-full py-5 rounded-2xl font-semibold text-lg transition-all duration-300 ${
+          !quote || isSwapPending || isQuoteLoading
+            ? 'bg-white/10 text-white/50 cursor-not-allowed border border-white/20'
+            : 'bg-gradient-to-r from-orange-400 to-pink-400 hover:from-orange-500 hover:to-pink-500 text-white transform hover:scale-105 shadow-2xl hover:shadow-orange-400/25'
         }`}
       >
-        {swapState.isSwapPending ? (
+        {isSwapPending ? (
           <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
             Swapping...
           </div>
-        ) : swapState.isQuoteLoading ? (
+        ) : isQuoteLoading ? (
           'Getting Quote...'
-        ) : !swapState.inputAmount ? (
+        ) : !inputAmount ? (
           'Enter Amount'
         ) : (
           'Swap'
@@ -398,10 +224,10 @@ export const SwapWidget: React.FC = () => {
       </button>
 
       {/* Settings */}
-      <div className="mt-4 pt-4 border-t border-gray-200">
-        <div className="flex justify-between items-center text-xs text-gray-500">
-          <span>Slippage: {swapState.slippageTolerance}%</span>
-          <span>Deadline: {swapState.deadline}min</span>
+      <div className="mt-6 pt-4 border-t border-white/10">
+        <div className="flex justify-between items-center text-xs text-white/60">
+          <span>Slippage: {slippageTolerance}%</span>
+          <span>Deadline: {deadline}min</span>
         </div>
       </div>
     </div>
