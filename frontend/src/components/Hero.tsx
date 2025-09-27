@@ -7,7 +7,7 @@ import { motion } from 'motion/react';
 
 export default function Hero() {
   return (
-    <div className="flex flex-col relative items-center overflow-hidden">
+    <div className="flex flex-col min-h-screen w-full relative items-center overflow-hidden">
       <div className="w-96 h-96 absolute top-[17%] left-[36%] z-10">
         <Lottie 
           animationData={animationData}
@@ -33,13 +33,13 @@ export default function Hero() {
       <span>Swap</span>
       <ArrowRight />
     </motion.div>
-      <CurvedLoop 
-        marqueeText="Routing where it all started ✦ Extending 1inch to Bitcoin ✦"
-        speed={4}
-        curveAmount={400}
-        direction="left"
-        interactive={true}
-      />
+    <CurvedLoop 
+      marqueeText="Routing where it all started ✦ Extending 1inch to Bitcoin ✦"
+      speed={4}
+      curveAmount={400}
+      direction="left"
+      interactive={true}
+    />
     </div>
   );
 }

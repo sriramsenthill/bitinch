@@ -3,12 +3,29 @@ import { devtools } from 'zustand/middleware';
 
 // Asset interface
 export interface Asset {
-  id: string;
+  id: number;
   symbol: string;
   name: string;
   icon: string;
   decimals: number;
   balance?: number;
+}
+
+export const assets = {
+  eth: {
+    id: 1,
+    symbol: "ETH",
+    name: "Ethereum",
+    icon: "https://garden.imgix.net/chain_images/ethereum.svg",
+    decimals: 18
+  },
+  btc: {
+    id: 2,
+    symbol: "BTC",
+    name: "Bitcoin",
+    icon: "https://garden.imgix.net/token-images/bitcoin.svg",
+    decimals: 8
+  }
 }
 
 // Quote interface
@@ -57,26 +74,6 @@ export interface SwapState {
   priceChange24h: number;
 }
 
-// Default assets
-export const DEFAULT_ASSETS: Asset[] = [
-  {
-    id: 'btc',
-    symbol: 'BTC',
-    name: 'Bitcoin',
-    icon: '₿',
-    decimals: 8,
-    balance: 0.5
-  },
-  {
-    id: 'eth',
-    symbol: 'ETH',
-    name: 'Ethereum',
-    icon: 'Ξ',
-    decimals: 18,
-    balance: 2.5
-  }
-];
-
 // Mock price data
 export const MOCK_PRICES = {
   BTC: 45000,
@@ -93,8 +90,7 @@ export const MOCK_EXCHANGE_RATES = {
 interface SwapActions {
   // Input handling
   setInputAmount: (amount: string) => void;
-  setOutputAmount: (amount: string) => void;
-  
+  setOutputAmount: (amount: string) => void;  
   // Asset selection
   setFromAsset: (asset: Asset) => void;
   setToAsset: (asset: Asset) => void;
@@ -130,8 +126,8 @@ interface SwapActions {
 
 // Initial state
 const initialState: SwapState = {
-  fromAsset: DEFAULT_ASSETS[0], // BTC
-  toAsset: DEFAULT_ASSETS[1],    // ETH
+  fromAsset: assets.btc, // BTC
+  toAsset: assets.eth,    // ETH
   inputAmount: '',
   outputAmount: '',
   quote: null,
